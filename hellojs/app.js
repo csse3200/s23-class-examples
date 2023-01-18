@@ -1,6 +1,20 @@
 console.log("Hello world");
 
-var x = 5;
+var myFriends = ["Joe", "Steve", "John", "Sara"];
+
+//var myObject = { "name": "apple", "color": "red" };
+
+//var myFriends = [{
+//  "name": "Joe",
+//  "homeTown": "Atlanta",
+//  "hobby": "tennis"
+//}, {
+//  "name": "Steve",
+//  "homeTown": "SLC",
+//  "hobby": "painting"
+//}];
+
+//var x = 5;
 
 var h1element = document.querySelector("#my-heading");
 console.log("my h1 element", h1element);
@@ -29,3 +43,18 @@ myButton.onclick = function () {
   friendNameInput.value = "";
 };
 
+var randomButton = document.querySelector("#random-friend-button");
+console.log("random button query", randomButton);
+
+randomButton.onclick = function () {
+  console.log("the random button was clicked");
+
+  // random index for a random friend (0 to length of friends array)
+  var randomIndex = Math.floor(Math.random() * myFriends.length);
+  // index my array of friends: a variable with the string
+  var randomName = myFriends[randomIndex];
+  // query the span
+  var randomNameSpan = document.querySelector("#random-friend-name");
+  // assign innerHTML of the span to the friend name string
+  randomNameSpan.innerHTML = randomName + " was picked.";
+};
