@@ -1,6 +1,7 @@
 console.log("Hello world");
 
-var myFriends = ["Joe", "Steve", "John", "Sara"];
+//var myFriends = ["Joe", "Steve", "John", "Sara"];
+var myFriends = [];
 
 //var myObject = { "name": "apple", "color": "red" };
 
@@ -58,3 +59,12 @@ randomButton.onclick = function () {
   // assign innerHTML of the span to the friend name string
   randomNameSpan.innerHTML = randomName + " was picked.";
 };
+
+fetch("https://api.jsonbin.io/v3/b/63cee213ebd26539d0661b5b").then(function (response) {
+  response.json().then(function (data) {
+    console.log("data received from server:", data);
+    //myFriends = data["record"];
+    // --or--
+    myFriends = data.record;
+  });
+});
