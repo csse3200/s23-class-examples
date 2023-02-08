@@ -38,6 +38,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
 
         # 3. send a response
         self.send_response(201)
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
     def do_GET(self):

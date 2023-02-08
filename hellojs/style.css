@@ -1,3 +1,21 @@
 body {
   font-family: sans-serif;
 }
+
+ol {
+    padding: 0;
+    list-style-type: none;
+}
+
+li {
+    width: 300px;
+    border: 1px solid black;
+    background: #eeeeee;
+    margin: 20px;
+    padding: 10px;
+    font-weight: bold;
+}
+
+.movie-name {
+  font-size: 24px;
+}
