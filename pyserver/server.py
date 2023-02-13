@@ -1,5 +1,6 @@
 from dummydb import DummyDB
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs
 import json
 
@@ -57,10 +58,12 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         else:
             self.handleNotFound()
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 def run():
     listen = ("127.0.0.1", 8080)
-    server = HTTPServer(listen, MyRequestHandler)
+    server = ThreadedHTTPServer(listen, MyRequestHandler)
 
     print("Server running!")
     server.serve_forever()
