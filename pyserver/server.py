@@ -1,8 +1,9 @@
+from dummydb import DummyDB
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs
 import json
 
-MY_MOVIES = ["Avatar", "Inception", "Oppenheimer"]
+# MY_MOVIES = ["Avatar", "Inception", "Oppenheimer"]
 
 class MyRequestHandler(BaseHTTPRequestHandler):
 
@@ -20,7 +21,9 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         # response body:
-        self.wfile.write(bytes(json.dumps(MY_MOVIES), "utf-8"))
+        db = DummyDB('movies_db.db')
+        allMovies = db.readAllRecords()
+        self.wfile.write(bytes(json.dumps(allMovies), "utf-8"))
 
     def handleCreateMovie(self):
         print("request headers:", self.headers)
@@ -32,9 +35,10 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         parsed_body = parse_qs(request_body)
         print("parsed request body:", parsed_body)
 
-        # 2. append to MY_MOVIES
+        # 2. save movie name to the "database"
         movie_name = parsed_body["name"][0] # index the dictionary & list
-        MY_MOVIES.append(movie_name)
+        db = DummyDB('movies_db.db')
+        db.saveRecord(movie_name)
 
         # 3. send a response
         self.send_response(201)
