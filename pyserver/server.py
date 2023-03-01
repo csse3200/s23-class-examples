@@ -1,10 +1,8 @@
-from dummydb import DummyDB
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs
+from movies_db import MoviesDB
 import json
-
-# MY_MOVIES = ["Avatar", "Inception", "Oppenheimer"]
 
 class MyRequestHandler(BaseHTTPRequestHandler):
 
@@ -15,6 +13,9 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(bytes("Not found.", "utf-8"))
 
     def handleGetMoviesCollection(self):
+        db = MoviesDB()
+        allMovies = db.getAllMovies()
+
         # response status code:
         self.send_response(200)
         # response header:
@@ -22,8 +23,6 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         # response body:
-        db = DummyDB('movies_db.db')
-        allMovies = db.readAllRecords()
         self.wfile.write(bytes(json.dumps(allMovies), "utf-8"))
 
     def handleCreateMovie(self):
@@ -38,8 +37,10 @@ class MyRequestHandler(BaseHTTPRequestHandler):
 
         # 2. save movie name to the "database"
         movie_name = parsed_body["name"][0] # index the dictionary & list
-        db = DummyDB('movies_db.db')
-        db.saveRecord(movie_name)
+        movie_rating = parsed_body["rating"][0] # index the dictionary & list
+        movie_genre = parsed_body["genre"][0] # index the dictionary & list
+        db = MoviesDB()
+        db.createMovie(movie_name, movie_rating, movie_genre)
 
         # 3. send a response
         self.send_response(201)
