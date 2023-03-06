@@ -20,8 +20,21 @@ class MoviesDB:
         self.cursor.execute("INSERT INTO movies (name, rating, genre) VALUES (?, ?, ?)", data)
         self.connection.commit()
 
+    # returns a list of dictionaries (or an empty list if there are no records)
     def getAllMovies(self):
         # read all records from table
         self.cursor.execute("SELECT * FROM movies")
         records = self.cursor.fetchall()
         return records
+
+    # returns a single dictionary (or None if the movie_id does not exist)
+    def getOneMovie(self, movie_id):
+        data = [movie_id]
+        self.cursor.execute("SELECT * FROM movies WHERE id = ?", data)
+        record = self.cursor.fetchone()
+        return record
+
+
+# DELETE FROM movies WHERE id = ?
+
+# UPDATE movies SET name = ?, rating = ?, genre = ? WHERE id = ?

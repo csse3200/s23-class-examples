@@ -25,6 +25,22 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         # response body:
         self.wfile.write(bytes(json.dumps(allMovies), "utf-8"))
 
+    def handleGetMoviesMember(self, movie_id):
+        db = MoviesDB()
+        oneMovie = db.getOneMovie(movie_id)
+
+        if oneMovie != None:
+            # response status code:
+            self.send_response(200)
+            # response header:
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            # response body:
+            self.wfile.write(bytes(json.dumps(oneMovie), "utf-8")) # jsonify
+        else:
+            self.handleNotFound()
+
     def handleCreateMovie(self):
         print("request headers:", self.headers)
 
@@ -47,9 +63,27 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self):
-        if self.path == "/movies":
-            self.handleGetMoviesCollection()
+        path_parts = self.path.split("/")
+        if len(path_parts) == 3:
+            collection_name = path_parts[1]
+            member_id = path_parts[2]
+        else:
+            collection_name = path_parts[1]
+            member_id = None
+
+        if collection_name == "movies":
+            if member_id:
+                self.handleGetMoviesMember(member_id)
+            else:
+                self.handleGetMoviesCollection()
         else:
             self.handleNotFound()
 
