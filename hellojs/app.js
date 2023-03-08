@@ -33,10 +33,14 @@ addButton.onclick = function () {
   var movieNameInput = document.querySelector("#movie-name");
   console.log("my input element:", movieNameInput);
   console.log("input element text:", movieNameInput.value);
+  var movieRatingInput = document.querySelector("#movie-rating");
+  var movieGenreInput = document.querySelector("#movie-genre");
 
-  createMovieOnServer(movieNameInput.value);
+  createMovieOnServer(movieNameInput.value, movieRatingInput.value, movieGenreInput.value);
 
   movieNameInput.value = "";
+  movieRatingInput.value = "";
+  movieGenreInput.value = "";
 };
 
 var randomButton = document.querySelector("#random-movie-button");
@@ -70,14 +74,28 @@ function loadMoviesFromServer() {
         var newItem = document.createElement("li");
 
         var nameDiv = document.createElement("div");
-        nameDiv.innerHTML = movie;
+        nameDiv.innerHTML = movie.name;
         nameDiv.classList.add("movie-name");
         newItem.appendChild(nameDiv);
 
         var dateDiv = document.createElement("div");
-        dateDiv.innerHTML = "1990";
-        dateDiv.classList.add("movie-date");
+        dateDiv.innerHTML = movie.genre;
+        dateDiv.classList.add("movie-genre");
         newItem.appendChild(dateDiv);
+
+        var deleteButton = document.createElement("button");
+        deleteButton.innerHTML = "Delete";
+        deleteButton.onclick = function () {
+          console.log("delete button was clicked for", movie.name);
+          if (confirm("Are you sure you want to delete " + movie.name + "?")) {
+            deleteMovieFromServer(movie.id);
+          }
+        };
+        newItem.appendChild(deleteButton);
+
+        var editButton = document.createElement("button");
+        editButton.innerHTML = "Edit";
+        newItem.appendChild(editButton);
 
         myList.appendChild(newItem);
       });
@@ -85,10 +103,12 @@ function loadMoviesFromServer() {
   });
 }
 
-function createMovieOnServer(movieName) {
+function createMovieOnServer(movieName, movieRating, movieGenre) {
   console.log("attempting to create movie", movieName, "on server");
 
   var data = "name=" + encodeURIComponent(movieName);
+  data += "&rating=" + encodeURIComponent(movieRating);
+  data += "&genre=" + encodeURIComponent(movieGenre);
   console.log("sending data to server:", data);
 
   fetch("http://localhost:8080/movies", {
@@ -106,7 +126,18 @@ function createMovieOnServer(movieName) {
     } else {
       console.log("server responded with", response.status, "when trying to create a movie");
     }
+  });
+}
 
+function deleteMovieFromServer(movieId) {
+  fetch("http://localhost:8080/movies/" + movieId, {
+    method: "DELETE"
+  }).then(function (response) {
+    if (response.status == 200) {
+      loadMoviesFromServer();
+    } else {
+      console.log("server responded with", response.status, "when trying to delete a movie");
+    }
   });
 }
 
