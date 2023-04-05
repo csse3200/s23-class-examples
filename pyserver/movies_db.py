@@ -34,6 +34,10 @@ class MoviesDB:
         record = self.cursor.fetchone()
         return record
 
+    def deleteMovie(self, movie_id):
+        data = [movie_id]
+        self.cursor.execute("DELETE FROM movies WHERE id = ?", data)
+        self.connection.commit()
 
 # DELETE FROM movies WHERE id = ?
 

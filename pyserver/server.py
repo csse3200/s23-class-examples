@@ -1,10 +1,50 @@
+from http import cookies
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs
 from movies_db import MoviesDB
+from passlib.hash import bcrypt
+from session_store import SessionStore
 import json
 
+SESSION_STORE = SessionStore()
+
 class MyRequestHandler(BaseHTTPRequestHandler):
+
+    def end_headers(self):
+        self.sendCookie()
+        super().end_headers()
+
+    # read cookie data from the Cookie header
+    def loadCookie(self):
+        if "Cookie" in self.headers:
+            self.cookie = cookies.SimpleCookie(self.headers["Cookie"])
+        else:
+            self.cookie = cookies.SimpleCookie()
+
+    # send cookie data using the Set-Cookie header
+    def sendCookie(self):
+        for morsel in self.cookie.values():
+            self.send_header("Set-Cookie", morsel.OutputString())
+
+    def loadSession(self):
+        # load the cookie data
+        self.loadCookie()
+        # check for existance of the session ID cookie
+        if 'sessionId' in self.cookie: # if it exists:
+            sessionId = self.cookie['sessionId'].value
+            # load the session data for the session ID
+            self.sessionData = SESSION_STORE.getSessionData(sessionId)
+            # if the session ID is not valid:
+                # create a new session / session ID
+                # save the new session ID into a cookie
+                self.cookie['sessionId'] = sessionId
+                # load the session with the new session ID
+                self.sessionData = SESSION_STORE.getSessionData(sessionId)
+        # else:
+            # create a new session / session ID
+            # save the new session ID into a cookie
+            # load the session with the new session ID
 
     def handleNotFound(self):
         self.send_response(404)
@@ -13,6 +53,8 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(bytes("Not found.", "utf-8"))
 
     def handleGetMoviesCollection(self):
+        #print("headers:", self.headers)
+
         db = MoviesDB()
         allMovies = db.getAllMovies()
 
@@ -21,6 +63,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         # response header:
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
+        #self.send_header("Set-Cookie", "flavor=biscoff")
         self.end_headers()
         # response body:
         self.wfile.write(bytes(json.dumps(allMovies), "utf-8"))
@@ -38,6 +81,21 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             # response body:
             self.wfile.write(bytes(json.dumps(oneMovie), "utf-8")) # jsonify
+        else:
+            self.handleNotFound()
+
+    def handleDeleteMovie(self, movie_id):
+        db = MoviesDB()
+        oneMovie = db.getOneMovie(movie_id)
+
+        if oneMovie != None:
+            db.deleteMovie(movie_id)
+            # response status code:
+            self.send_response(200)
+            # response header:
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
         else:
             self.handleNotFound()
 
@@ -64,6 +122,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_OPTIONS(self):
+        self.loadSession()
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -71,6 +130,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        self.loadSession()
         path_parts = self.path.split("/")
         if len(path_parts) == 3:
             collection_name = path_parts[1]
@@ -88,8 +148,27 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             self.handleNotFound()
 
     def do_POST(self):
+        self.loadSession()
         if self.path == "/movies":
             self.handleCreateMovie()
+        else:
+            self.handleNotFound()
+
+    def do_DELETE(self):
+        self.loadSession()
+        path_parts = self.path.split("/")
+        if len(path_parts) == 3:
+            collection_name = path_parts[1]
+            member_id = path_parts[2]
+        else:
+            collection_name = path_parts[1]
+            member_id = None
+
+        if collection_name == "movies":
+            if member_id:
+                self.handleDeleteMovie(member_id)
+            else:
+                self.handleNotFound()
         else:
             self.handleNotFound()
 
