@@ -60,7 +60,9 @@ randomButton.onclick = function () {
 };
 
 function loadMoviesFromServer() {
-  fetch("http://localhost:8080/movies").then(function (response) {
+  fetch("http://localhost:8080/movies", {
+    credentials: 'include'
+  }).then(function (response) {
     response.json().then(function (data) {
       console.log("data received from server:", data);
       myMovies = data;
@@ -113,6 +115,7 @@ function createMovieOnServer(movieName, movieRating, movieGenre) {
 
   fetch("http://localhost:8080/movies", {
     // request details:
+    credentials: 'include',
     method: "POST",
     body: data,
     headers: {
@@ -131,6 +134,7 @@ function createMovieOnServer(movieName, movieRating, movieGenre) {
 
 function deleteMovieFromServer(movieId) {
   fetch("http://localhost:8080/movies/" + movieId, {
+    credentials: 'include',
     method: "DELETE"
   }).then(function (response) {
     if (response.status == 200) {

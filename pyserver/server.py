@@ -13,6 +13,8 @@ class MyRequestHandler(BaseHTTPRequestHandler):
 
     def end_headers(self):
         self.sendCookie()
+        self.send_header("Access-Control-Allow-Origin", self.headers["Origin"])
+        self.send_header("Access-Control-Allow-Credentials", "true")
         super().end_headers()
 
     # read cookie data from the Cookie header
@@ -25,6 +27,9 @@ class MyRequestHandler(BaseHTTPRequestHandler):
     # send cookie data using the Set-Cookie header
     def sendCookie(self):
         for morsel in self.cookie.values():
+            if "Postman" not in self.headers["User-Agent"]:
+                morsel["samesite"] = "None"
+                morsel["secure"] = True
             self.send_header("Set-Cookie", morsel.OutputString())
 
     def loadSession(self):
@@ -36,15 +41,20 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             # load the session data for the session ID
             self.sessionData = SESSION_STORE.getSessionData(sessionId)
             # if the session ID is not valid:
+            if self.sessionData == None:
                 # create a new session / session ID
+                sessionId = SESSION_STORE.createSession()
                 # save the new session ID into a cookie
                 self.cookie['sessionId'] = sessionId
                 # load the session with the new session ID
                 self.sessionData = SESSION_STORE.getSessionData(sessionId)
-        # else:
+        else:
             # create a new session / session ID
+            sessionId = SESSION_STORE.createSession()
             # save the new session ID into a cookie
+            self.cookie['sessionId'] = sessionId
             # load the session with the new session ID
+            self.sessionData = SESSION_STORE.getSessionData(sessionId)
 
     def handleNotFound(self):
         self.send_response(404)
@@ -53,7 +63,17 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(bytes("Not found.", "utf-8"))
 
     def handleGetMoviesCollection(self):
+        if 'userId' not in self.sessionData:
+            self.handle401()
+            return
+
         #print("headers:", self.headers)
+
+#        if 'test' not in self.sessionData:
+#            self.sessionData['test'] = 1
+#        else:
+#            self.sessionData['test'] += 1
+#        print("current session data:", self.sessionData)
 
         db = MoviesDB()
         allMovies = db.getAllMovies()
@@ -62,13 +82,16 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         # response header:
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
         #self.send_header("Set-Cookie", "flavor=biscoff")
         self.end_headers()
         # response body:
         self.wfile.write(bytes(json.dumps(allMovies), "utf-8"))
 
     def handleGetMoviesMember(self, movie_id):
+        if 'userId' not in self.sessionData:
+            self.handle401()
+            return
+
         db = MoviesDB()
         oneMovie = db.getOneMovie(movie_id)
 
@@ -77,7 +100,6 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             # response header:
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             # response body:
             self.wfile.write(bytes(json.dumps(oneMovie), "utf-8")) # jsonify
@@ -94,7 +116,6 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             # response header:
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
         else:
             self.handleNotFound()
@@ -118,13 +139,35 @@ class MyRequestHandler(BaseHTTPRequestHandler):
 
         # 3. send a response
         self.send_response(201)
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
+
+    def handleCreateSession(self):
+        length = int(self.headers["Content-Length"])
+        request_body = self.rfile.read(length).decode("utf-8")
+        print("raw request body:", request_body)
+        parsed_body = parse_qs(request_body)
+        print("parsed request body:", parsed_body)
+
+        email = parsed_body["email"][0]
+        password = parsed_body["password"][0]
+
+        db = MoviesDB()
+        user = db.getUserByEmail(email)
+        if user != None:
+            if bcrypt.verify(password, user['encrypted_password']):
+                # persist user's authenticated identity into the session data
+                self.sessionData['userId'] = user['id']
+
+                self.send_response(201)
+                self.end_headers()
+            else:
+                self.handle401()
+        else:
+            self.handle401()
 
     def do_OPTIONS(self):
         self.loadSession()
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
